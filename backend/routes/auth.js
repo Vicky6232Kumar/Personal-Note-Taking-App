@@ -65,6 +65,7 @@ router.post('/createuser',
 router.post('/login',
   body('email').isEmail(),
   body('password', "Please enter a correct password").exists(), async (req, res) => {
+    let success = false;
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
