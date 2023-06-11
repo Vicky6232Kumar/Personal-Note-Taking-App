@@ -8,6 +8,8 @@ var jwt = require('jsonwebtoken');
 
 const JWT_SECRECT = "cviktlfndsfvk34r@&&djfvieo"
 
+
+
 // Route 1 : Creating a user profile
 
 router.post('/createuser',
@@ -15,11 +17,11 @@ router.post('/createuser',
   body('email').isEmail(),
   body('password').isLength({ min: 5 }), async (req, res) => {
 
-    // If there is any then they return bad request
-
+    // If there is any error then they return bad request
+    let success = false;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ success, errors: errors.array() });
     }
     try {
 
@@ -27,7 +29,7 @@ router.post('/createuser',
       let user = await User.findOne({ email: req.body.email })
       // checking whether user email already exist or not
       if (user) {
-        return res.status(400).json({ error: "Sorry the user email already exists" })
+        return res.status(400).json({ success, error: "Sorry the user email already exists" })
       }
 
       const salt = await bcrypt.genSaltSync(10);
@@ -45,7 +47,8 @@ router.post('/createuser',
         }
       }
       var authToken = jwt.sign(data, JWT_SECRECT);
-      res.json({ authToken })
+      success = true
+      res.json({ success, authToken })
       // res.json({ "ok": "Account Created" })
     } catch (error) {
       console.log(error)
@@ -55,6 +58,8 @@ router.post('/createuser',
 
 
 // Route 2 : User login API
+
+
 
 
 router.post('/login',
@@ -68,14 +73,15 @@ router.post('/login',
 
     const { email, password } = req.body
     try {
-      let user = await User.findOne({email})
+      let user = await User.findOne({ email })
       if (!user) {
         return res.status(400).json({ error: "Email doesn't exist" })
       }
 
-      const matchPassword = await bcrypt.compare(password, user.password); 
-      if(!matchPassword){
-        return res.status(400).json({ error: "Please login with correct credential" })
+      const matchPassword = await bcrypt.compare(password, user.password);
+      if (!matchPassword) {
+        success = false;
+        return res.status(400).json({ success, error: "Please login with correct credential" })
       }
 
       const data = {
@@ -84,7 +90,8 @@ router.post('/login',
         }
       }
       const authToken = jwt.sign(data, JWT_SECRECT);
-      res.json({ authToken })
+      success = true;
+      res.json({ success, authToken })
 
     } catch (error) {
       console.log(error)
@@ -94,14 +101,19 @@ router.post('/login',
   })
 
 
-  // Route 3 : Getting user data using valid token
-  router.post('/getuser', fetchuser , async(req, res) =>{
-    try {
-      userId = req.user.id;
-      const user = await User.findById(userId).select('-password')
-      res.send(user)
-    } catch (error) {
-      res.status(500).json({ "error": "API Internal Error" })
-    }
-  })
+
+// Route 3 : Getting user data using valid token
+
+
+router.post('/getuser', fetchuser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password')
+    res.send(user)
+  } catch (error) {
+    res.status(500).json({ "error": "API Internal Error" })
+  }
+})
+
+
 module.exports = router
